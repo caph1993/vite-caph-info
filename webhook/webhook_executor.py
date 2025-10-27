@@ -21,7 +21,7 @@ GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
 if GITHUB_TOKEN:
     headers = {"Authorization": f"token {GITHUB_TOKEN}"}
 else:
-    headers = {}
+    headers = None
 
 
 def get_latest_release():
@@ -67,7 +67,12 @@ def download_and_extract(url, version):
         incoming = tmp_dir / "dist"
 
         if tgt_dir.exists():
-            shutil.rmtree(tgt_dir)
+            # Remove files and folders inside, but keep the dist folder
+            for item in tgt_dir.iterdir():
+                if item.is_dir():
+                    shutil.rmtree(item)
+                else:
+                    item.unlink()
         incoming.rename(tgt_dir)
     finally:
         shutil.rmtree(tmp_dir)
