@@ -1,0 +1,50 @@
+.mainParent {
+  font-family: "Latin Modern Roman", "Computer Modern Serif", serif;
+  line-height: 1.5;
+  padding-top: 1em;
+}
+
+.mainBody {
+  /* padding-left: calc(max(5*var(--vw), 1rem));
+  padding-right: calc(max(5*var(--vw), 1rem)); */
+  max-width: min(40em,90vw);
+  margin: auto;
+  /* hyphens: auto; */
+  /* text-align: justify; */
+}
+
+.mainEmptyBottom {
+  padding-bottom: calc(20vh + 5rem);
+}
+
+.navbarParent {
+  font-family: "Latin Modern Roman", sans-serif;
+  margin: 1em 0 0.6em 0;
+  padding: 0 5vw 0 5vw;
+  max-width: 40em;
+  display: flex;
+  align-items: center;
+}
+
+.navbarBody {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+.navbarBody > div>a::after{
+  display: none;
+}
+.navbarBody > div>a:visited{
+  color: var(--color-link);
+}
+
+.navbarIconWiki {
+  vertical-align: center;
+  width: 1em;
+  height: 1em;
+}
+
+.navbarComponentFooter {
+  margin: 0 4% 1em 4%;
+}

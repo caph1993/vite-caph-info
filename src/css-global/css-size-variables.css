@@ -1,0 +1,6 @@
+html{
+  --window-inner-width: 100vw;
+  --window-inner-height: 100vh;
+  --vw: 1vw;
+  --vh: 1vh;
+}

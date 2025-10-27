@@ -1,0 +1,108 @@
+name: Build and release
+
+on:
+  push:
+    branches:
+      - dev  # Trigger the workflow on pushes to this branch
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22'
+
+      - name: Install dependencies and build
+        run: |
+          corepack enable
+          pnpm install
+          pnpm build
+
+
+      - name: Merge dev to main (if build succeeded)
+        if: success()  # Merge to main only if build is successful
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+          git checkout main
+          git merge dev --no-ff -m "Automated merge of dev into main after successful build"
+          git push origin main
+      
+      - name: Generate timestamp
+        id: timestamp
+        run: echo "TAG_NAME=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
+
+      # - name: Create a release archive
+      #   run: tar -czf dist.tar.gz dist
+
+      - name: Create a release archive
+        run: |
+          mkdir tmp-dist
+          mv dist tmp-dist/dist
+          tar -czf dist.tar.gz -C tmp-dist dist
+          rm -rf tmp-dist
+
+      - name: List files
+        run: ls -R
+
+      - name: Create GitHub release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          release_name: Release ${{ env.TAG_NAME }}
+          draft: false
+          prerelease: false
+
+      - name: Upload dist folder as asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./dist.tar.gz
+          asset_name: dist.tar.gz
+          asset_content_type: application/gzip
+      
+      - name: Get releases
+        id: releases
+        run: |
+          curl -s https://api.github.com/repos/${{ github.repository }}/releases | jq '.[].id' > release_ids.txt
+
+      - name: Delete old releases
+        run: |
+          # Adjust this to your criteria for "old" releases, e.g., keep the latest 3
+          releases_to_delete=$(tail -n +4 release_ids.txt)  # Delete releases older than the latest 3
+          for release_id in $releases_to_delete; do
+            curl -X DELETE -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/${{ github.repository }}/releases/$release_id
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify webhook
+        env:
+          WEBHOOK_URL: https://caph.info/deploy
+          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+        run: |
+          payload=$(jq -n --arg tag "${GITHUB_REF#refs/tags/}" '{"ref":$tag}')
+          signature="sha256=$(echo -n "$payload" | openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" | sed 's/^.* //')"
+          curl -X POST \
+               -H "X-Hub-Signature-256: $signature" \
+               -H "Content-Type: application/json" \
+               -d "$payload" \
+               "$WEBHOOK_URL"
+
+      # - name: Deploy to GitHub Pages
+      #   uses: peaceiris/actions-gh-pages@v3
+      #   with:
+      #     github_token: ${{ secrets.GITHUB_TOKEN }}
+      #     publish_dir: ./dist
