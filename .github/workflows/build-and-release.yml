@@ -26,13 +26,69 @@ jobs:
       
       - name: Merge dev to main (if build succeeded)
         if: success()  # Merge to main only if build is successful
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Robust merge: try to merge dev into main and push.
+          # If merge or push fails (conflicts or protected branch), create a PR from an automated branch instead.
+          set -uo pipefail
           git config --global user.name "github-actions"
           git config --global user.email "actions@github.com"
-          git fetch origin
-          git checkout main
-          git merge dev --no-ff -m "Automated merge of dev into main after successful build"  --allow-unrelated-histories
-          git push origin main
+
+          # Use token-authenticated URL so push can authenticate
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+          # Fetch both branches
+          git fetch origin --prune
+          git fetch origin main dev || true
+
+          # Ensure local main tracks origin/main (create if missing)
+          if git rev-parse --verify origin/main >/dev/null 2>&1; then
+            git checkout -B main origin/main
+          else
+            git checkout -B main || true
+          fi
+
+          # Attempt merge
+          MERGE_MSG="Automated merge of dev into main after successful build"
+          if git merge --no-edit --no-ff origin/dev -m "$MERGE_MSG" --allow-unrelated-histories; then
+            echo "Local merge succeeded"
+            # Try pushing to main. If push fails (e.g., protected branch), fall back to creating a PR branch.
+            if git push origin main; then
+              echo "Pushed merged main to origin/main"
+            else
+              echo "Push to origin/main failed (protected branch or permissions). Creating PR branch instead."
+              BRANCH="automated/dev-to-main-$(date +%s)"
+              git checkout -B "$BRANCH"
+              git push -u origin "$BRANCH" || true
+              PR_TITLE="Automated PR: merge dev into main"
+              PR_BODY="Automated PR created because pushing a direct merge to main failed (protected branch or permissions). Please review and merge."
+              # Create PR via GitHub API
+              if command -v jq >/dev/null 2>&1; then
+                payload=$(jq -n --arg title "$PR_TITLE" --arg head "$BRANCH" --arg base "main" --arg body "$PR_BODY" '{title:$title,head:$head,base:$base,body:$body}')
+              else
+                payload=$(printf '{"title":"%s","head":"%s","base":"%s","body":"%s"}' "$PR_TITLE" "$BRANCH" "main" "$PR_BODY")
+              fi
+              curl -s -X POST -H "Authorization: token ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" \
+                -d "$payload" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls" || true
+            fi
+          else
+            echo "Automatic merge had conflicts or failed. Aborting merge and creating PR branch."
+            git merge --abort || true
+            BRANCH="automated/dev-to-main-$(date +%s)"
+            # Create branch from origin/dev so PR shows dev changes cleanly
+            git checkout -B "$BRANCH" origin/dev || git checkout -B "$BRANCH" || true
+            git push -u origin "$BRANCH" || true
+            PR_TITLE="Automated PR: merge dev into main (conflicts)"
+            PR_BODY="Automatic merge of dev into main failed due to conflicts. This PR was created so maintainers can resolve and merge."
+            if command -v jq >/dev/null 2>&1; then
+              payload=$(jq -n --arg title "$PR_TITLE" --arg head "$BRANCH" --arg base "main" --arg body "$PR_BODY" '{title:$title,head:$head,base:$base,body:$body}')
+            else
+              payload=$(printf '{"title":"%s","head":"%s","base":"%s","body":"%s"}' "$PR_TITLE" "$BRANCH" "main" "$PR_BODY")
+            fi
+            curl -s -X POST -H "Authorization: token ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" \
+              -d "$payload" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls" || true
+          fi
         
       - name: Generate timestamp
         id: timestamp
