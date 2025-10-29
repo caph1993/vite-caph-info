@@ -36,8 +36,8 @@ if [ "$existing_tag" = "$tag_name" ]; then
   echo "Already at latest version: $tag_name"
   exit 0
 fi
-mkdir -p /app/releases/tmp
-mkdir -p /app/releases/tmp/dist
+mkdir -p /app/releases/tmp || exit 1
+mkdir -p /app/releases/tmp/dist || exit 1
 curl -L -o /app/releases/tmp/dist.tar.gz "$tarfile_url" || exit 1
 tar -xzvf /app/releases/tmp/dist.tar.gz -C /app/releases/tmp/dist --strip-components=1 || exit 1
 echo "$tag_name" > /app/releases/tmp/dist/version.txt
