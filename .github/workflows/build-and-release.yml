@@ -118,37 +118,44 @@ jobs:
       - name: List files
         run: ls -R
 
-      - name: Create GitHub release
-        id: create_release
-        uses: actions/create-release@v1
-        # NOTE: Use a personal access token (PAT) stored as `secrets.RELEASE_TOKEN`
-        # with `repo` scope. Events and webhook deliveries created by the
-        # automatically provided GITHUB_TOKEN do NOT trigger other workflows.
-        # Using a PAT will cause the release event to actually fire and allow
-        # downstream workflows (like `rotate-releases` or other `release` listeners)
-        # to run.
-        # Provide the PAT to the action via the `token` input (the action
-        # requires this). We keep the env var for other tools that might use it.
+      - name: Create GitHub release and upload asset (via API)
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-        with:
-          token: ${{ secrets.RELEASE_TOKEN }}
-          tag_name: ${{ env.TAG_NAME }}
-          release_name: Release ${{ env.TAG_NAME }}
-          draft: false
-          prerelease: false
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          TAG_NAME: ${{ env.TAG_NAME }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -uo pipefail
+          if [ -z "${RELEASE_TOKEN:-}" ]; then
+            echo "ERROR: secrets.RELEASE_TOKEN is not set. Add a PAT in repository secrets as RELEASE_TOKEN." >&2
+            exit 1
+          fi
 
-      - name: Upload dist folder as asset
-        uses: actions/upload-release-asset@v1
-        # Use the same PAT so uploads and related API calls come from the PAT
-        # and are recognized by GitHub as user-created events if needed.
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dist.tar.gz
-          asset_name: dist.tar.gz
-          asset_content_type: application/gzip
+          # Build release payload
+          if command -v jq >/dev/null 2>&1; then
+            payload=$(jq -n --arg tag "$TAG_NAME" --arg name "Release $TAG_NAME" '{tag_name:$tag,name:$name,draft:false,prerelease:false}')
+          else
+            payload=$(printf '{"tag_name":"%s","name":"%s","draft":false,"prerelease":false}' "$TAG_NAME" "Release $TAG_NAME")
+          fi
+
+          # Create the release via API
+          resp=$(curl -s -X POST -H "Authorization: token $RELEASE_TOKEN" -H "Accept: application/vnd.github+json" -d "$payload" "https://api.github.com/repos/$REPO/releases")
+          upload_url=$(echo "$resp" | (jq -r .upload_url || true))
+          if [ -z "$upload_url" ] || [ "$upload_url" = "null" ]; then
+            echo "Failed to create release. Response:" >&2
+            echo "$resp" >&2
+            exit 1
+          fi
+
+          # Strip template part from upload_url (e.g. "{?name,label}")
+          upload_url=${upload_url%\{*}
+
+          # Upload asset (dist.tar.gz)
+          if [ -f ./dist.tar.gz ]; then
+            echo "Uploading asset to $upload_url"
+            curl -s -X POST -H "Authorization: token $RELEASE_TOKEN" -H "Content-Type: application/gzip" --data-binary @dist.tar.gz "$upload_url?name=dist.tar.gz" || true
+          else
+            echo "dist.tar.gz not found; skipping asset upload"
+          fi
       
 
 
