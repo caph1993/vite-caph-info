@@ -125,7 +125,7 @@ jobs:
 
       - name: Trigger external webhook
         env:
-          SECRET: ${{ secrets.WEBHOOK_SECRET }}
+          SECRET: 41d25be18324642a1a415db210b609a3f60f66de8c5cd85cc49d83907e6f2090
         run: |
           curl -X POST \
             -H "Content-Type: application/json" \
