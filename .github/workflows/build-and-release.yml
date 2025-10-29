@@ -29,8 +29,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Robust merge: try to merge dev into main and push.
-          # If merge or push fails (conflicts or protected branch), create a PR from an automated branch instead.
+          # Robust rebase: rebase dev onto main and fast-forward main.
+          # If rebase or push fails (conflicts or protected branch), create a PR from an automated branch instead.
           set -uo pipefail
           git config --global user.name "github-actions"
           git config --global user.email "actions@github.com"
@@ -38,7 +38,7 @@ jobs:
           # Use token-authenticated URL so push can authenticate
           git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
 
-          # Fetch both branches
+          # Fetch branches
           git fetch origin --prune
           git fetch origin main dev || true
 
@@ -49,21 +49,41 @@ jobs:
             git checkout -B main || true
           fi
 
-          # Attempt merge
-          MERGE_MSG="Automated merge of dev into main after successful build"
-          if git merge --no-edit --no-ff origin/dev -m "$MERGE_MSG" --allow-unrelated-histories; then
-            echo "Local merge succeeded"
-            # Try pushing to main. If push fails (e.g., protected branch), fall back to creating a PR branch.
-            if git push origin main; then
-              echo "Pushed merged main to origin/main"
+          # Create local dev branch from origin/dev
+          git checkout -B dev origin/dev || git checkout -B dev || true
+
+          # Attempt to rebase dev onto origin/main
+          if git rebase origin/main; then
+            echo "Rebase of dev onto origin/main succeeded"
+            # Try to fast-forward main to dev
+            git checkout main
+            if git merge --ff-only dev; then
+              echo "Fast-forwarded main to include dev changes"
+              # Try pushing to main. If push fails (protected branch), create PR branch instead.
+              if git push origin main; then
+                echo "Pushed rebased main to origin/main"
+              else
+                echo "Push to origin/main failed (protected branch or permissions). Creating PR branch instead."
+                BRANCH="automated/dev-to-main-$(date +%s)"
+                git checkout -B "$BRANCH"
+                git push -u origin "$BRANCH" || true
+                PR_TITLE="Automated PR: rebase dev into main"
+                PR_BODY="Automated PR created because pushing a direct rebase to main failed (protected branch or permissions). Please review and merge."
+                if command -v jq >/dev/null 2>&1; then
+                  payload=$(jq -n --arg title "$PR_TITLE" --arg head "$BRANCH" --arg base "main" --arg body "$PR_BODY" '{title:$title,head:$head,base:$base,body:$body}')
+                else
+                  payload=$(printf '{"title":"%s","head":"%s","base":"%s","body":"%s"}' "$PR_TITLE" "$BRANCH" "main" "$PR_BODY")
+                fi
+                curl -s -X POST -H "Authorization: token ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" \
+                  -d "$payload" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls" || true
+              fi
             else
-              echo "Push to origin/main failed (protected branch or permissions). Creating PR branch instead."
+              echo "Fast-forward of main to dev not possible. Creating PR branch from dev for manual merge."
               BRANCH="automated/dev-to-main-$(date +%s)"
-              git checkout -B "$BRANCH"
+              git checkout -B "$BRANCH" dev
               git push -u origin "$BRANCH" || true
-              PR_TITLE="Automated PR: merge dev into main"
-              PR_BODY="Automated PR created because pushing a direct merge to main failed (protected branch or permissions). Please review and merge."
-              # Create PR via GitHub API
+              PR_TITLE="Automated PR: rebase dev into main (non-ff)"
+              PR_BODY="Fast-forward of main to dev was not possible after rebase. This PR was created so maintainers can review and merge." 
               if command -v jq >/dev/null 2>&1; then
                 payload=$(jq -n --arg title "$PR_TITLE" --arg head "$BRANCH" --arg base "main" --arg body "$PR_BODY" '{title:$title,head:$head,base:$base,body:$body}')
               else
@@ -73,14 +93,14 @@ jobs:
                 -d "$payload" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls" || true
             fi
           else
-            echo "Automatic merge had conflicts or failed. Aborting merge and creating PR branch."
-            git merge --abort || true
+            echo "Rebase failed due to conflicts. Aborting rebase and creating PR branch."
+            git rebase --abort || true
             BRANCH="automated/dev-to-main-$(date +%s)"
             # Create branch from origin/dev so PR shows dev changes cleanly
             git checkout -B "$BRANCH" origin/dev || git checkout -B "$BRANCH" || true
             git push -u origin "$BRANCH" || true
-            PR_TITLE="Automated PR: merge dev into main (conflicts)"
-            PR_BODY="Automatic merge of dev into main failed due to conflicts. This PR was created so maintainers can resolve and merge."
+            PR_TITLE="Automated PR: rebase dev into main (conflicts)"
+            PR_BODY="Rebase of dev onto main failed due to conflicts. This PR was created so maintainers can resolve and merge."
             if command -v jq >/dev/null 2>&1; then
               payload=$(jq -n --arg title "$PR_TITLE" --arg head "$BRANCH" --arg base "main" --arg body "$PR_BODY" '{title:$title,head:$head,base:$base,body:$body}')
             else
@@ -128,34 +148,7 @@ jobs:
           asset_name: dist.tar.gz
           asset_content_type: application/gzip
       
-      - name: Get releases
-        id: releases
-        run: |
-          curl -s https://api.github.com/repos/${{ github.repository }}/releases | jq '.[].id' > release_ids.txt
 
-      - name: Delete old releases
-        run: |
-          # Adjust this to your criteria for "old" releases, e.g., keep the latest 3
-          releases_to_delete=$(tail -n +4 release_ids.txt)  # Delete releases older than the latest 3
-          for release_id in $releases_to_delete; do
-            curl -X DELETE -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            https://api.github.com/repos/${{ github.repository }}/releases/$release_id
-          done
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Notify webhook
-        env:
-          WEBHOOK_URL: https://caph.info/hooks/github-webhook
-          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
-        run: |
-          payload=$(jq -n --arg tag "${GITHUB_REF#refs/tags/}" '{"ref":$tag}')
-          signature="sha256=$(echo -n "$payload" | openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" | sed 's/^.* //')"
-          curl -X POST \
-               -H "X-Hub-Signature-256: $signature" \
-               -H "Content-Type: application/json" \
-               -d "$payload" \
-               "$WEBHOOK_URL"
 
       # - name: Deploy to GitHub Pages
       #   uses: peaceiris/actions-gh-pages@v3
