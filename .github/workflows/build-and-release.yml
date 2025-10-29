@@ -30,7 +30,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Robust rebase: rebase dev onto main and fast-forward main.
-          # If rebase or push fails (conflicts or protected branch), create a PR from an automated branch instead.
+          # If rebase or push fails (conflicts or protected branch), open a PR from the existing `dev` branch
+          # instead of creating automated branches to avoid branch proliferation.
           set -uo pipefail
           git config --global user.name "github-actions"
           git config --global user.email "actions@github.com"
@@ -59,52 +60,42 @@ jobs:
             git checkout main
             if git merge --ff-only dev; then
               echo "Fast-forwarded main to include dev changes"
-              # Try pushing to main. If push fails (protected branch), create PR branch instead.
+              # Try pushing to main. If push fails (protected branch), open a PR from the existing `dev` branch instead.
               if git push origin main; then
                 echo "Pushed rebased main to origin/main"
               else
-                echo "Push to origin/main failed (protected branch or permissions). Creating PR branch instead."
-                BRANCH="automated/dev-to-main-$(date +%s)"
-                git checkout -B "$BRANCH"
-                git push -u origin "$BRANCH" || true
+                echo "Push to origin/main failed (protected branch or permissions). Creating PR from 'dev' instead."
                 PR_TITLE="Automated PR: rebase dev into main"
                 PR_BODY="Automated PR created because pushing a direct rebase to main failed (protected branch or permissions). Please review and merge."
                 if command -v jq >/dev/null 2>&1; then
-                  payload=$(jq -n --arg title "$PR_TITLE" --arg head "$BRANCH" --arg base "main" --arg body "$PR_BODY" '{title:$title,head:$head,base:$base,body:$body}')
+                  payload=$(jq -n --arg title "$PR_TITLE" --arg head "dev" --arg base "main" --arg body "$PR_BODY" '{title:$title,head:$head,base:$base,body:$body}')
                 else
-                  payload=$(printf '{"title":"%s","head":"%s","base":"%s","body":"%s"}' "$PR_TITLE" "$BRANCH" "main" "$PR_BODY")
+                  payload=$(printf '{"title":"%s","head":"%s","base":"%s","body":"%s"}' "$PR_TITLE" "dev" "main" "$PR_BODY")
                 fi
                 curl -s -X POST -H "Authorization: token ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" \
                   -d "$payload" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls" || true
               fi
             else
-              echo "Fast-forward of main to dev not possible. Creating PR branch from dev for manual merge."
-              BRANCH="automated/dev-to-main-$(date +%s)"
-              git checkout -B "$BRANCH" dev
-              git push -u origin "$BRANCH" || true
+              echo "Fast-forward of main to dev not possible. Creating PR from 'dev' for manual merge."
               PR_TITLE="Automated PR: rebase dev into main (non-ff)"
-              PR_BODY="Fast-forward of main to dev was not possible after rebase. This PR was created so maintainers can review and merge." 
+              PR_BODY="Fast-forward of main to dev was not possible after rebase. Please review the 'dev' branch and merge into main." 
               if command -v jq >/dev/null 2>&1; then
-                payload=$(jq -n --arg title "$PR_TITLE" --arg head "$BRANCH" --arg base "main" --arg body "$PR_BODY" '{title:$title,head:$head,base:$base,body:$body}')
+                payload=$(jq -n --arg title "$PR_TITLE" --arg head "dev" --arg base "main" --arg body "$PR_BODY" '{title:$title,head:$head,base:$base,body:$body}')
               else
-                payload=$(printf '{"title":"%s","head":"%s","base":"%s","body":"%s"}' "$PR_TITLE" "$BRANCH" "main" "$PR_BODY")
+                payload=$(printf '{"title":"%s","head":"%s","base":"%s","body":"%s"}' "$PR_TITLE" "dev" "main" "$PR_BODY")
               fi
               curl -s -X POST -H "Authorization: token ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" \
                 -d "$payload" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls" || true
             fi
           else
-            echo "Rebase failed due to conflicts. Aborting rebase and creating PR branch."
+            echo "Rebase failed due to conflicts. Aborting rebase and creating PR from existing 'dev' branch."
             git rebase --abort || true
-            BRANCH="automated/dev-to-main-$(date +%s)"
-            # Create branch from origin/dev so PR shows dev changes cleanly
-            git checkout -B "$BRANCH" origin/dev || git checkout -B "$BRANCH" || true
-            git push -u origin "$BRANCH" || true
             PR_TITLE="Automated PR: rebase dev into main (conflicts)"
-            PR_BODY="Rebase of dev onto main failed due to conflicts. This PR was created so maintainers can resolve and merge."
+            PR_BODY="Rebase of dev onto main failed due to conflicts. Please review the 'dev' branch and resolve conflicts when merging into main."
             if command -v jq >/dev/null 2>&1; then
-              payload=$(jq -n --arg title "$PR_TITLE" --arg head "$BRANCH" --arg base "main" --arg body "$PR_BODY" '{title:$title,head:$head,base:$base,body:$body}')
+              payload=$(jq -n --arg title "$PR_TITLE" --arg head "dev" --arg base "main" --arg body "$PR_BODY" '{title:$title,head:$head,base:$base,body:$body}')
             else
-              payload=$(printf '{"title":"%s","head":"%s","base":"%s","body":"%s"}' "$PR_TITLE" "$BRANCH" "main" "$PR_BODY")
+              payload=$(printf '{"title":"%s","head":"%s","base":"%s","body":"%s"}' "$PR_TITLE" "dev" "main" "$PR_BODY")
             fi
             curl -s -X POST -H "Authorization: token ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" \
               -d "$payload" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls" || true

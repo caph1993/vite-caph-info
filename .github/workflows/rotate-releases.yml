@@ -2,7 +2,7 @@ name: Rotate releases
 
 on:
   release:
-    types: [published]
+    types: [created, published, released]
 
 jobs:
   rotate-releases:
