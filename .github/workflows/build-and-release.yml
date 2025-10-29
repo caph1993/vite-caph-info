@@ -26,80 +26,13 @@ jobs:
       
       - name: Merge dev to main (if build succeeded)
         if: success()  # Merge to main only if build is successful
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Robust rebase: rebase dev onto main and fast-forward main.
-          # If rebase or push fails (conflicts or protected branch), open a PR from the existing `dev` branch
-          # instead of creating automated branches to avoid branch proliferation.
-          set -uo pipefail
           git config --global user.name "github-actions"
           git config --global user.email "actions@github.com"
-
-          # Use token-authenticated URL so push can authenticate
-          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-
-          # Fetch branches
-          git fetch origin --prune
-          git fetch origin main dev || true
-
-          # Ensure local main tracks origin/main (create if missing)
-          if git rev-parse --verify origin/main >/dev/null 2>&1; then
-            git checkout -B main origin/main
-          else
-            git checkout -B main || true
-          fi
-
-          # Create local dev branch from origin/dev
-          git checkout -B dev origin/dev || git checkout -B dev || true
-
-          # Attempt to rebase dev onto origin/main
-          if git rebase origin/main; then
-            echo "Rebase of dev onto origin/main succeeded"
-            # Try to fast-forward main to dev
-            git checkout main
-            if git merge --ff-only dev; then
-              echo "Fast-forwarded main to include dev changes"
-              # Try pushing to main. If push fails (protected branch), open a PR from the existing `dev` branch instead.
-              if git push origin main; then
-                echo "Pushed rebased main to origin/main"
-              else
-                echo "Push to origin/main failed (protected branch or permissions). Creating PR from 'dev' instead."
-                PR_TITLE="Automated PR: rebase dev into main"
-                PR_BODY="Automated PR created because pushing a direct rebase to main failed (protected branch or permissions). Please review and merge."
-                if command -v jq >/dev/null 2>&1; then
-                  payload=$(jq -n --arg title "$PR_TITLE" --arg head "dev" --arg base "main" --arg body "$PR_BODY" '{title:$title,head:$head,base:$base,body:$body}')
-                else
-                  payload=$(printf '{"title":"%s","head":"%s","base":"%s","body":"%s"}' "$PR_TITLE" "dev" "main" "$PR_BODY")
-                fi
-                curl -s -X POST -H "Authorization: token ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" \
-                  -d "$payload" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls" || true
-              fi
-            else
-              echo "Fast-forward of main to dev not possible. Creating PR from 'dev' for manual merge."
-              PR_TITLE="Automated PR: rebase dev into main (non-ff)"
-              PR_BODY="Fast-forward of main to dev was not possible after rebase. Please review the 'dev' branch and merge into main." 
-              if command -v jq >/dev/null 2>&1; then
-                payload=$(jq -n --arg title "$PR_TITLE" --arg head "dev" --arg base "main" --arg body "$PR_BODY" '{title:$title,head:$head,base:$base,body:$body}')
-              else
-                payload=$(printf '{"title":"%s","head":"%s","base":"%s","body":"%s"}' "$PR_TITLE" "dev" "main" "$PR_BODY")
-              fi
-              curl -s -X POST -H "Authorization: token ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" \
-                -d "$payload" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls" || true
-            fi
-          else
-            echo "Rebase failed due to conflicts. Aborting rebase and creating PR from existing 'dev' branch."
-            git rebase --abort || true
-            PR_TITLE="Automated PR: rebase dev into main (conflicts)"
-            PR_BODY="Rebase of dev onto main failed due to conflicts. Please review the 'dev' branch and resolve conflicts when merging into main."
-            if command -v jq >/dev/null 2>&1; then
-              payload=$(jq -n --arg title "$PR_TITLE" --arg head "dev" --arg base "main" --arg body "$PR_BODY" '{title:$title,head:$head,base:$base,body:$body}')
-            else
-              payload=$(printf '{"title":"%s","head":"%s","base":"%s","body":"%s"}' "$PR_TITLE" "dev" "main" "$PR_BODY")
-            fi
-            curl -s -X POST -H "Authorization: token ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" \
-              -d "$payload" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls" || true
-          fi
+          git fetch origin
+          git checkout main
+          git merge dev --no-ff -m "Automated merge of dev into main after successful build"  --allow-unrelated-histories
+          git push origin main
         
       - name: Generate timestamp
         id: timestamp
@@ -118,46 +51,52 @@ jobs:
       - name: List files
         run: ls -R
 
-      - name: Create GitHub release and upload asset (via API)
+      - name: Create GitHub release
+        id: create_release
+        uses: actions/create-release@v1
         env:
-          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-          TAG_NAME: ${{ env.TAG_NAME }}
-          REPO: ${{ github.repository }}
-        run: |
-          set -uo pipefail
-          if [ -z "${RELEASE_TOKEN:-}" ]; then
-            echo "ERROR: secrets.RELEASE_TOKEN is not set. Add a PAT in repository secrets as RELEASE_TOKEN." >&2
-            exit 1
-          fi
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          release_name: Release ${{ env.TAG_NAME }}
+          draft: false
+          prerelease: false
 
-          # Build release payload
-          if command -v jq >/dev/null 2>&1; then
-            payload=$(jq -n --arg tag "$TAG_NAME" --arg name "Release $TAG_NAME" '{tag_name:$tag,name:$name,draft:false,prerelease:false}')
-          else
-            payload=$(printf '{"tag_name":"%s","name":"%s","draft":false,"prerelease":false}' "$TAG_NAME" "Release $TAG_NAME")
-          fi
-
-          # Create the release via API
-          resp=$(curl -s -X POST -H "Authorization: token $RELEASE_TOKEN" -H "Accept: application/vnd.github+json" -d "$payload" "https://api.github.com/repos/$REPO/releases")
-          upload_url=$(echo "$resp" | (jq -r .upload_url || true))
-          if [ -z "$upload_url" ] || [ "$upload_url" = "null" ]; then
-            echo "Failed to create release. Response:" >&2
-            echo "$resp" >&2
-            exit 1
-          fi
-
-          # Strip template part from upload_url (e.g. "{?name,label}")
-          upload_url=${upload_url%\{*}
-
-          # Upload asset (dist.tar.gz)
-          if [ -f ./dist.tar.gz ]; then
-            echo "Uploading asset to $upload_url"
-            curl -s -X POST -H "Authorization: token $RELEASE_TOKEN" -H "Content-Type: application/gzip" --data-binary @dist.tar.gz "$upload_url?name=dist.tar.gz" || true
-          else
-            echo "dist.tar.gz not found; skipping asset upload"
-          fi
+      - name: Upload dist folder as asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./dist.tar.gz
+          asset_name: dist.tar.gz
+          asset_content_type: application/gzip
       
+      - name: Get releases
+        id: releases
+        run: |
+          curl -s https://api.github.com/repos/${{ github.repository }}/releases | jq '.[].id' > release_ids.txt
 
+      - name: Delete old releases
+        run: |
+          # Adjust this to your criteria for "old" releases, e.g., keep the latest 3
+          releases_to_delete=$(tail -n +4 release_ids.txt)  # Delete releases older than the latest 3
+          for release_id in $releases_to_delete; do
+            curl -X DELETE -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/${{ github.repository }}/releases/$release_id
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trigger external webhook
+        env:
+          SECRET: ${{ secrets.WEBHOOK_SECRET }}
+        run: |
+          curl -X POST \
+            -H "Content-Type: application/json" \
+            -H "X-Hub-Signature-256: sha256=$(echo -n '{}' | openssl dgst -sha256 -hmac "$SECRET" | cut -d' ' -f2)" \
+            -d '{}' \
+            https://caph.info/hooks/github-webhook
 
       # - name: Deploy to GitHub Pages
       #   uses: peaceiris/actions-gh-pages@v3
