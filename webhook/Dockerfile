@@ -24,7 +24,7 @@ COPY hooks.yml /etc/webhook/hooks.yml
 COPY download-latest.sh /app/download-latest.sh
 RUN chmod +x /app/download-latest.sh
 
-RUN adduser -D non-root && chown -R non-root /app
+RUN adduser -D non-root && chown -R non-root /app && mkdir -p /app/releases
 USER non-root
 
 ENV REPO=""
