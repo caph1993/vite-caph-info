@@ -90,7 +90,7 @@ jobs:
 
       - name: Notify webhook
         env:
-          WEBHOOK_URL: https://caph.info/deploy
+          WEBHOOK_URL: https://caph.info/hooks/github-webhook
           WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
         run: |
           payload=$(jq -n --arg tag "${GITHUB_REF#refs/tags/}" '{"ref":$tag}')
