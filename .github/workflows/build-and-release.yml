@@ -121,8 +121,14 @@ jobs:
       - name: Create GitHub release
         id: create_release
         uses: actions/create-release@v1
+        # NOTE: Use a personal access token (PAT) stored as `secrets.RELEASE_TOKEN`
+        # with `repo` scope. Events and webhook deliveries created by the
+        # automatically provided GITHUB_TOKEN do NOT trigger other workflows.
+        # Using a PAT will cause the release event to actually fire and allow
+        # downstream workflows (like `rotate-releases` or other `release` listeners)
+        # to run.
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         with:
           tag_name: ${{ env.TAG_NAME }}
           release_name: Release ${{ env.TAG_NAME }}
@@ -131,8 +137,10 @@ jobs:
 
       - name: Upload dist folder as asset
         uses: actions/upload-release-asset@v1
+        # Use the same PAT so uploads and related API calls come from the PAT
+        # and are recognized by GitHub as user-created events if needed.
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./dist.tar.gz

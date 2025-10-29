@@ -2,7 +2,10 @@ name: Rotate releases
 
 on:
   release:
-    types: [created, published, released]
+    # Use the canonical release event types. `published` fires when a release
+    # is published; `created` covers creation. Avoid unknown/non-standard
+    # types which may not trigger.
+    types: [created, published]
 
 jobs:
   rotate-releases:
