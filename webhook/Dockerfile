@@ -26,6 +26,7 @@ RUN chmod +x /app/download-latest.sh
 
 RUN adduser -D non-root && chown -R non-root /app
 USER non-root
+RUN mkdir -p /app/releases
 
 ENV REPO=""
 ENV WEBHOOK_SECRET=""

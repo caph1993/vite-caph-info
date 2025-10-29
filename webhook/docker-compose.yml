@@ -11,5 +11,5 @@ services:
       - REPO=${REPO}
       - WEBHOOK_SECRET=${WEBHOOK_SECRET}
       - GITHUB_TOKEN=${GITHUB_TOKEN} # optional for private repos
-    volumes:
-      - ./releases:/app/releases
+    # volumes:
+    #   - ./releases:/app/releases
