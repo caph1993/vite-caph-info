@@ -24,6 +24,16 @@ jobs:
           pnpm install
           pnpm build
       
+      - name: Merge dev to main (if build succeeded)
+        if: success()  # Merge to main only if build is successful
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+          git fetch origin
+          git checkout main
+          git merge dev --no-ff -m "Automated merge of dev into main after successful build"  --allow-unrelated-histories
+          git push origin main
+        
       - name: Generate timestamp
         id: timestamp
         run: echo "TAG_NAME=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
@@ -99,12 +109,3 @@ jobs:
 
 
 
-      - name: Merge dev to main (if build succeeded)
-        if: success()  # Merge to main only if build is successful
-        run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "actions@github.com"
-          git fetch origin
-          git checkout main
-          git merge dev --no-ff -m "Automated merge of dev into main after successful build"  --allow-unrelated-histories
-          git push origin main
