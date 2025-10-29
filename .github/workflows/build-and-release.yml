@@ -127,9 +127,12 @@ jobs:
         # Using a PAT will cause the release event to actually fire and allow
         # downstream workflows (like `rotate-releases` or other `release` listeners)
         # to run.
+        # Provide the PAT to the action via the `token` input (the action
+        # requires this). We keep the env var for other tools that might use it.
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         with:
+          token: ${{ secrets.RELEASE_TOKEN }}
           tag_name: ${{ env.TAG_NAME }}
           release_name: Release ${{ env.TAG_NAME }}
           draft: false
