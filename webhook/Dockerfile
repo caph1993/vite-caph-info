@@ -1,23 +1,34 @@
-FROM python:3.12-alpine
+FROM golang:1.22-alpine as builder
 
-RUN pip install requests
+# Install git and build tools
+RUN apk add --no-cache git build-base
 
-# copy listener script
+WORKDIR /src
+
+# Use `go install` so the built binary is placed in /go/bin (GOPATH)
+# Pinning to @latest here; change to a specific tag if you want reproducible builds.
+RUN GOBIN=/go/bin go install github.com/adnanh/webhook@latest
+
+FROM alpine:latest
+
+# runtime dependencies
+RUN apk add --no-cache curl tar jq ca-certificates
+
+# copy the binary produced by the builder
+COPY --from=builder /go/bin/webhook /usr/local/bin/webhook
+RUN chmod +x /usr/local/bin/webhook
+
 WORKDIR /app
-COPY webhook_listener.py .
-COPY webhook_executor.py .
 
-# create non-root user
-RUN adduser -D webhook && chown -R webhook /app
-USER webhook
+COPY hooks.yml /etc/webhook/hooks.yml
+COPY download-latest.sh /app/download-latest.sh
+RUN chmod +x /app/download-latest.sh
 
-# environment variable: must be passed at runtime
+RUN adduser -D non-root && chown -R non-root /app
+USER non-root
+
+ENV REPO=""
 ENV WEBHOOK_SECRET=""
-ENV REPO_OWNER=""
-ENV REPO_NAME=""
+ENV GITHUB_TOKEN=""
 
-# expose the internal port
-EXPOSE 9000
-
-# start the listener
-CMD ["python3", "/app/webhook_listener.py"]
+CMD [ "webhook", "-hooks", "/etc/webhook/hooks.yml", "-template", "-port", "9000", "-verbose" ]

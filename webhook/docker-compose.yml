@@ -1,0 +1,15 @@
+services:
+  webhook:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: vite-caph-info-webhook
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    environment:
+      - REPO=${REPO}
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET}
+      - GITHUB_TOKEN=${GITHUB_TOKEN} # optional for private repos
+    volumes:
+      - ./releases:/app/releases
