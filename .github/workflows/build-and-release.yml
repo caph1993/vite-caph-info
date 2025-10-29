@@ -24,15 +24,50 @@ jobs:
           pnpm install
           pnpm build
       
-      - name: Merge dev to main (if build succeeded)
-        if: success()  # Merge to main only if build is successful
+      - name: Merge dev to main (rebase-first, fallback to PR)
+        if: success()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
           git config --global user.name "github-actions"
           git config --global user.email "actions@github.com"
-          git fetch origin
-          git checkout main
-          git merge dev --no-ff -m "Automated merge of dev into main after successful build"  --allow-unrelated-histories
-          git push origin main
+          git fetch origin --prune
+
+          # Ensure we have local branches pointing at remote refs
+          git checkout -B main origin/main
+          git checkout -B dev origin/dev
+
+          echo "Attempting to rebase 'dev' onto 'main' to produce a fast-forward merge..."
+
+          if git rebase main; then
+            echo "Rebase succeeded — fast-forward merging into main and pushing"
+            git checkout main
+            git merge --ff-only dev
+            git push origin main
+          else
+            echo "Automatic rebase failed. Aborting rebase and creating a PR from dev -> main instead."
+            git rebase --abort || true
+
+            repo="${GITHUB_REPOSITORY}"
+            owner="${GITHUB_REPOSITORY_OWNER}"
+
+            # Check for existing open PR from dev to main
+            existing_prs=$(curl -s -H "Authorization: token ${GITHUB_TOKEN}" \
+              "https://api.github.com/repos/${repo}/pulls?state=open&head=${owner}:dev&base=main")
+
+            if echo "$existing_prs" | jq -e 'length > 0' >/dev/null 2>&1; then
+              echo "An open PR from dev to main already exists. Leaving it for manual review."
+            else
+              echo "No open PR found — creating a new PR from dev -> main"
+              payload=$(jq -n --arg title "Automated PR: dev -> main (rebase failed in CI)" \
+                --arg body "Automatic rebase of 'dev' onto 'main' failed during the build workflow. Creating this PR for manual conflict resolution and merge." \
+                '{title:$title, head: "dev", base: "main", body:$body}')
+
+              curl -s -X POST -H "Authorization: token ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" \
+                -d "$payload" "https://api.github.com/repos/${repo}/pulls" || true
+            fi
+          fi
         
       - name: Generate timestamp
         id: timestamp
