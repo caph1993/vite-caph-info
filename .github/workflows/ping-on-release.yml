@@ -1,8 +1,9 @@
 name: Ping on release
 
 on:
-  release:
-    types: [published]
+  workflow_run:
+    workflows: ["Build and release"]  # name of the other workflow
+    types: [completed]
 
 jobs:
   ping:
