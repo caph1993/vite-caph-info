@@ -124,15 +124,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Trigger external webhook
+        run: curl https://caph.info/hooks/${HOOK_ENDPOINT}
         env:
-          SECRET: 41d25be18324642a1a415db210b609a3f60f66de8c5cd85cc49d83907e6f2090
-        run: |
-          curl -X POST \
-            -H "Content-Type: application/json" \
-            -H "X-Hub-Signature-256: sha256=$(echo -n '{}' | openssl dgst -sha256 -hmac "$SECRET" | cut -d' ' -f2)" \
-            -d '{}' \
-            https://caph.info/hooks/github-webhook
-
+          HOOK_ENDPOINT: ${{ secrets.CAPH_INFO_HOOK_ENDPOINT }}
+      
       # - name: Deploy to GitHub Pages
       #   uses: peaceiris/actions-gh-pages@v3
       #   with:
