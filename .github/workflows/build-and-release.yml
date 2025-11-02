@@ -124,9 +124,15 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Trigger external webhook
-        run: curl https://caph.info/hooks/${HOOK_ENDPOINT}
-        env:
-          HOOK_ENDPOINT: ${{ secrets.CAPH_INFO_HOOK_ENDPOINT }}
+        run: |
+          # If the secret is not set, skip the webhook to avoid calling the base URL.
+          if [ -z "${{ secrets.CAPH_INFO_HOOK_ENDPOINT }}" ]; then
+            echo "CAPH_INFO_HOOK_ENDPOINT secret is empty; skipping webhook call."
+          else
+            # Use curl with -f (fail on HTTP errors), -sS (silent but show errors).
+            # Keep the command tolerant to failure so the release job isn't blocked.
+            curl -fsS "https://caph.info/hooks/${{ secrets.CAPH_INFO_HOOK_ENDPOINT }}" || true
+          fi
       
       # - name: Deploy to GitHub Pages
       #   uses: peaceiris/actions-gh-pages@v3
