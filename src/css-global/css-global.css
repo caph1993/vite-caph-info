@@ -9,7 +9,7 @@ body{
   padding: 0;
   font-size: var(--font-size);
   min-height: var(--window-inner-height);
-  background: no-repeat url(../../static/paper-texture/paper.png) 0 0;
+  background: no-repeat url(../../public/paper-texture/paper.png) 0 0;
   background-repeat: repeat;
   font-family: "Computer Modern Serif", "Latin Modern Roman", serif;
 }

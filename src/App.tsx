@@ -68,7 +68,7 @@ let main = <div class={css.mainParent}>
       </div>
       {/* <div>
         <a href="./wiki">
-          <img class={css.navbarIconWiki} src="static/icons/icon-wiki.png" alt="wiki" />
+          <img class={css.navbarIconWiki} src="public/icons/icon-wiki.png" alt="wiki" />
         </a>
       </div> */}
       <div>
@@ -86,6 +86,6 @@ export default main;
 
 $(main).appendTo("body");
 //color: #0c4090;
-$('<link>', { rel: 'stylesheet', href: 'static/font-lmroman.css' }).appendTo('head');
+$('<link>', { rel: 'stylesheet', href: 'public/font-lmroman.css' }).appendTo('head');
 
 
