@@ -1,0 +1,27 @@
+.card{
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px;
+  text-align: center;
+  cursor: pointer;
+}
+.card:hover{
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  transform: scale(1.02);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.card >div> img{
+  margin:auto;
+  max-width: min(10em, 80vw);
+  height: auto;
+  border-radius: 4px;
+}
+.card >div> img:hover{
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  transform: scale(1.02);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.cardDescription{
+  cursor: default;
+}

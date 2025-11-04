@@ -24,12 +24,13 @@
   padding: 0 5vw 0 5vw;
   max-width: 40em;
   display: flex;
-  align-items: center;
 }
 
 .navbarBody {
+  padding-bottom: 0.5em;
   width: 100%;
   display: flex;
+  align-items: baseline;
   flex-wrap: wrap;
   justify-content: space-between;
 }

@@ -5,6 +5,7 @@ import { lang$, Translations } from './language';
 import { SwitchMore } from './SwitchMore';
 
 import ProjectIsotropic from './projects/ProjectIsotropic';
+import style from './Projects.module.css';
 
 const RadioPlayer = (name$, href) => {
   const button = <button>{name$.textNode || name$}</button>;
@@ -24,20 +25,37 @@ const projectFilterOptions = RadioGroup([
   [true, lang$.switch({
     en: 'All', es: 'Todos', de: 'Alle', fr: 'Toutes',
   })],
-  ['Publications', lang$.switch({
-    en: 'Publications', es: 'Publicaciones', de: 'Veröffentlichungen', fr: 'Ouvrages',
-  })],
   ['Enterprise', lang$.switch({
     en: 'Enterprise', es: 'Empresarial', de: 'Unternehmen', fr: 'Entreprise',
   })],
   ['Personal', lang$.switch({
     en: 'Personal', es: 'Personal', de: 'Persönlich', fr: 'Personnel',
   })],
+  ['Publications', lang$.switch({
+    en: 'Publications', es: 'Publicaciones', de: 'Veröffentlichungen', fr: 'Ouvrages',
+  })],
 ], projectFilter$);
 
 $(projectFilterOptions).prepend(lang$.switch({
   en: 'Filter:', es: 'Filtro:', de: 'Filter:', fr: 'Filtre:',
 }).textNode())
+
+
+const Card = ({ title, img, link, children }) => {
+  const out = <div class={style.card}>
+    <h3>{title}</h3>
+    <div>
+      <img src={img} alt={title} />
+    </div>
+    <div class={style.cardDescription} onClick={(ev) => ev.stopPropagation()}>
+      {children}
+    </div>
+  </div>;
+  $(out).on('click', () => {
+    window.location.href = link;
+  });
+  return out;
+}
 
 
 $('<style>').text(`
@@ -47,6 +65,41 @@ $('<style>').text(`
 `).appendTo("body");
 
 const ProjectsBody = () => <div>
+
+  <h2>
+    Deployments:
+  </h2>
+  <Card
+    title="Clone of AI piano player"
+    img="/static/profile/magenta.png"
+    link="./files/public/piano_rnn/performance_rnn.html"
+  >
+    Open source AI piano model. The AI will start playing live from your device after 3 to 12 seconds of loading once you enter the <a href="./files/public/piano_rnn/performance_rnn.html">link</a>.
+  </Card>
+
+  <Card
+    title="Docmost"
+    img="https://avatars.githubusercontent.com/u/150462874?v=4"
+    link="https://docmost.caph.info"
+  >
+    Platform for collaborative projects <a href="https://docmost.caph.info">link</a>.
+    It's like <a href="https://www.notion.com/">Notion</a> but free for multiple users and open source.
+  </Card>
+
+  <Card
+    title="Signature PDF"
+    img="https://github.com/24eme/signaturepdf/raw/master/public/logo.svg"
+    link="https://pdf.caph.info"
+  >
+    Open source tool to quickly annotate pdfs. <a href="https://pdf.caph.info">Link</a>.
+
+  </Card>
+
+
+
+
+
+  <br />
   {projectFilterOptions}
   {lang$.switch({
     en: ' ',

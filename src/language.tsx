@@ -36,9 +36,10 @@ const _lang: 'en' | 'es' | 'de' | 'fr' = (navigator.language || navigator.userLa
 export const lang$ = new LangRX(languages[_lang] || languages['en']).ls('lang$');
 
 export let isSmallScreen$ = new RX(window.innerWidth < 500);
+$(window).on('resize', () => isSmallScreen$.set(window.innerWidth < 500));
 
 export const LanguageSelector = () => {
-  let component = <select class={css.selector}></select>
+  let component = <select class={css.selector} aria-label="Language selector" title="Select language"></select>
   component.onchange = (e) => lang$.set(languages[e.target['value']]);
   const options = lang$.languageKeys.map(key => {
     const e = (<option value={key}></option>)
