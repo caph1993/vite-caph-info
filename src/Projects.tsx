@@ -71,7 +71,7 @@ const ProjectsBody = () => <div>
   </h2>
   <Card
     title="Clone of AI piano player"
-    img="/public/profile/magenta.png"
+    img="/images/magenta.png"
     link="./files/public/piano_rnn/performance_rnn.html"
   >
     Open source AI piano model. The AI will start playing live from your device after 3 to 12 seconds of loading once you enter the <a href="./files/public/piano_rnn/performance_rnn.html">link</a>.

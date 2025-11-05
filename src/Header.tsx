@@ -1,6 +1,6 @@
 const defaults = {
   title: 'Carlos Pinzón',
-  favicon: 'public/icons/icon.png',
+  favicon: '/icons/icon.png',
 }
 
 export default function (props?: { favicon?: string, title?: string }) {
