@@ -1,7 +1,46 @@
+/* Clean, academic and accessible language selector styling */
 select.selector{
-  /* Prettier selector*/
-  /* border: 1px solid var(--color-border); */
-  /* cursor: pointer; */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  box-sizing: border-box;
   font-family: 'Latin Modern Roman', serif;
-  /* border-radius: 0.3em; */
+  /* Use control variables so the select follows the same surface treatment as the theme toggle */
+  background-color: var(--control-bg, var(--color-background-strong, #fff));
+  color: var(--color-text, #111);
+  border: 1px solid var(--control-border, var(--color-background-weak, #cfcfcf));
+  padding: 0.0rem 1.55rem 0.0rem 0.4rem; /* increase vertical padding so descenders (g,j,p) are visible */
+  font-size: 0.95rem;
+  line-height: normal; /* avoid clipping of glyph descenders */
+  border-radius: 0.3rem;
+  min-height: 2.0rem; /* larger min-height to give room for fonts with descenders */
+  cursor: pointer;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+  /* subtle custom caret using theme-aware text color */
+  background-image: linear-gradient(45deg, transparent 50%, var(--color-text, #111) 50%),
+                    linear-gradient(135deg, var(--color-text, #111) 50%, transparent 50%);
+  /* keep caret vertically centered regardless of padding */
+  background-position: calc(100% - 0.9rem) center, calc(100% - 0.6rem) center;
+  background-size: 0.38rem 0.38rem, 0.38rem 0.38rem;
+  background-repeat: no-repeat;
+}
+
+/* Focus state for keyboard users */
+select.selector:focus{
+  outline: none;
+  border-color: var(--color-link, #5b84d1);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-link, #5b84d1) 20%, transparent);
+}
+
+/* Disabled state */
+select.selector:disabled{
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce){
+  select.selector{ transition: none; }
 }

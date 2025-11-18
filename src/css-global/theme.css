@@ -14,6 +14,9 @@ html:not([data-theme='dark']) {
   --color-selection-background:rgba(173, 216, 230, 0.5); /* Light blue */
   --color-overlay-element-bg: 0, 0, 0;
   --color-overlay-element-fg: 240, 240, 240;
+  /* control colors used for inputs and buttons in light theme */
+  --control-bg: var(--color-background-strong);
+  --control-border: var(--color-background-weak);
 }
 
 html[data-theme='dark'] {
@@ -36,6 +39,10 @@ html[data-theme='dark'] {
   --color-background-pre: #aaa;
 
   --box-shadow: rgba(100, 100, 100, 0.75);
+  /* control colors used for inputs and buttons in dark theme */
+  /* mix a slightly lighter surface from the background for a subtle panel look */
+  --control-bg: color-mix(in srgb, var(--background, #282923) 60%, var(--color-background-strong, #111) 40%);
+  --control-border: color-mix(in srgb, var(--background-2, #6d6e6a) 45%, #000 10%);
 }
 
 html{
@@ -50,3 +57,41 @@ html ::selection {
 a { color: var(--color-link);     text-decoration-thickness: 0.5px; }
 a:visited { color: var(--color-link-visited); }
 a:hover { color: var(--color-link-hover); }
+
+/* Theme toggle button styles (uses Material Design Icons) */
+.theme-toggle{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  background-color: var(--control-bg, transparent);
+  color: var(--color-text);
+  border: 1px solid var(--control-border, rgba(0,0,0,0.12));
+  padding: 0.28rem 0.45rem;
+  font-size: 1rem;
+  border-radius: 0.35rem;
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.theme-toggle:hover{
+  background-color: color-mix(in srgb, var(--color-link, #53a7eb) 6%, var(--control-bg, transparent));
+}
+
+.theme-toggle:focus{
+  outline: none;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-link, #53a7eb) 14%, transparent);
+  border-color: var(--color-link);
+}
+
+.theme-icon{ font-size: 1.05rem; line-height: 1; }
+
+/* Show the moon icon in light theme (indicates action to switch to dark), show sun in dark theme */
+html:not([data-theme='dark']) .theme-icon--darkish{ display: inline-block; }
+html:not([data-theme='dark']) .theme-icon--sunny{ display: none; }
+
+html[data-theme='dark'] .theme-icon--darkish{ display: none; }
+html[data-theme='dark'] .theme-icon--sunny{ display: inline-block; }
+
+/* Small utility for accessible hidden text */
+.visually-hidden{ position:absolute !important; height:1px; width:1px; overflow:hidden; clip:rect(1px, 1px, 1px, 1px); white-space:nowrap; }

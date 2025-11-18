@@ -158,7 +158,7 @@ const HomeBody = () => <>
   </LanguageSwitch>
 
   <div style="display:flex; justify-content:center; width:100%;">
-    <HomePhoto class="main-photo" src="https://caph.info/files/public/icons/photo-2024-2-768x1024.jpeg" />
+    <HomePhoto class="main-photo" src="/photos/photo-2024-desk-25.jpg" />
   </div>
   <h2>Curriculum vitae</h2>
   <ul>
