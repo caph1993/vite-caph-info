@@ -31,7 +31,7 @@ const HomeBody = () => <>
       <strong>Programmer and researcher</strong>
 
       <p>
-        I am researcher and software developer educated in Mathematics and Computer Science with the following degrees:
+        I am researcher and software developer with the following academic degrees:
       </p>
 
       <ul>
@@ -61,7 +61,7 @@ const HomeBody = () => <>
       <strong>Programador e investigador</strong>
 
       <p>
-        Soy investigador y desarrollador de software educado en Matemáticas y Ciencias de la Computación con los siguientes títulos:
+        Soy investigador y desarrollador de software con los siguientes diplomas académicos:
       </p>
 
       <ul>
@@ -89,7 +89,7 @@ const HomeBody = () => <>
       <strong>Programmeur et chercheur</strong>
 
       <p>
-        Je suis chercheur et développeur de logiciels avec des études en mathématiques et en informatique. J'ai les diplômes suivants :
+        Je suis chercheur et développeur de logiciels avec les diplômes suivants :
       </p>
 
       <ul>
@@ -117,7 +117,7 @@ const HomeBody = () => <>
       <strong>Programmierer und Forscher</strong>
 
       <p>
-        Ich bin Forscher und Softwareentwickler mit Fachkenntnissen in Mathematik und Informatik. Ich habe die folgende Abschlüsse erworben:
+        Ich bin Forscher und Softwareentwickler mit den folgenden akademischen Abschlüssen:
       </p>
 
       <ul>
