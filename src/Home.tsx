@@ -31,16 +31,12 @@ const HomeBody = () => <>
       <strong>Programmer and researcher</strong>
 
       <p>
-        I am researcher and software developer with expertise in algorithms and probability.
-      </p>
-
-      <p>
-        I have studied, taught and carried out {links.scholar("academic research")} in Mathematics and Computer Science for 15 years, obtaining the following degrees:
+        I am researcher and software developer educated in Mathematics and Computer Science with the following degrees:
       </p>
 
       <ul>
         <li>
-          PhD in Mathematics and Computer Science from {links.IPP()} - {links.lX()}, France, 2023.
+          PhD in Mathematics and Informatics from {links.IPP()} - {links.lX()}, France, 2023.
         </li>
         <li>
           Master in Engineering (Computer Science) from {links.PUJCali()}, Colombia, 2020.
@@ -65,16 +61,12 @@ const HomeBody = () => <>
       <strong>Programador e investigador</strong>
 
       <p>
-        Soy investigador y desarrollador de software con experiencia en algoritmos y probabilidad.
-      </p>
-
-      <p>
-        He estudiado, enseñado y realizado {links.scholar("investigación académica")} en Matemáticas y Ciencias de la Computación durante 15 años, obteniendo los siguientes títulos:
+        Soy investigador y desarrollador de software educado en Matemáticas y Ciencias de la Computación con los siguientes títulos:
       </p>
 
       <ul>
         <li>
-          Doctorado en Matemáticas y Ciencias de la Computación de {links.IPP()} - {links.lX()}, Francia, 2023.
+          Doctorado en Matemáticas e Informática de {links.IPP()} - {links.lX()}, Francia, 2023.
         </li>
         <li>
           Maestría en Ingeniería (Ciencias de la Computación) de {links.PUJCali()}, Colombia, 2020.
@@ -97,11 +89,7 @@ const HomeBody = () => <>
       <strong>Programmeur et chercheur</strong>
 
       <p>
-        Je suis chercheur et développeur de logiciels avec une expertise en algorithmes et probabilité.
-      </p>
-
-      <p>
-        J'ai étudié, enseigné et mené des {links.scholar("recherches académiques")} en mathématiques et en informatique pendant 15 ans, obtenant les diplômes suivants :
+        Je suis chercheur et développeur de logiciels avec des études en mathématiques et en informatique. J'ai les diplômes suivants :
       </p>
 
       <ul>
@@ -129,16 +117,12 @@ const HomeBody = () => <>
       <strong>Programmierer und Forscher</strong>
 
       <p>
-        Ich bin Forscher und Softwareentwickler mit Fachkenntnissen in Algorithmen und Wahrscheinlichkeit.
-      </p>
-
-      <p>
-        Ich habe 15 Jahre lang {links.scholar("akademische Forschung")} in Mathematik und Informatik studiert, gelehrt und durchgeführt und folgende Abschlüsse erworben:
+        Ich bin Forscher und Softwareentwickler mit Fachkenntnissen in Mathematik und Informatik. Ich habe die folgende Abschlüsse erworben:
       </p>
 
       <ul>
         <li>
-          Promotion in Mathematik und Informatik von {links.IPP()} - {links.lX()}, Frankreich, 2023.
+          PhD in Mathematik und Informatik von {links.IPP()} - {links.lX()}, Frankreich, 2023.
         </li>
         <li>
           Master in Ingenieurwesen (Informatik) von {links.PUJCali()}, Kolumbien, 2020.
