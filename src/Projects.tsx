@@ -78,21 +78,21 @@ const ProjectsBody = () => <div>
   </Card>
 
   <Card
-    title="Docmost"
-    img="https://avatars.githubusercontent.com/u/150462874?v=4"
-    link="https://docmost.caph.info"
-  >
-    Platform for collaborative projects <a href="https://docmost.caph.info">link</a>.
-    It's like <a href="https://www.notion.com/">Notion</a> but free for multiple users and open source.
-  </Card>
-
-  <Card
     title="Signature PDF"
     img="https://github.com/24eme/signaturepdf/raw/master/public/logo.svg"
     link="https://pdf.caph.info"
   >
     Open source tool to quickly annotate pdfs. <a href="https://pdf.caph.info">Link</a>.
 
+  </Card>
+
+  <Card
+    title="Docmost (disabled for now)"
+    img="https://avatars.githubusercontent.com/u/150462874?v=4"
+    link="https://docmost.caph.info"
+  >
+    Platform for collaborative projects <a href="https://docmost.caph.info">link</a>.
+    It's like <a href="https://www.notion.com/">Notion</a> but free for multiple users and open source.
   </Card>
 
 
